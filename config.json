@@ -1,0 +1,11 @@
+{
+	"WUKey" : "",
+	"WULocation" : "",
+	"GAPIKey" : "",
+	"GCalID" : "",
+	"HeadlinesRSSFeed" : "",
+	"Pop3MailServer" : "",
+	"MailServerSSL" : true,
+	"Pop3MailUsername" : "",
+	"Pop3MailPassword" : ""
+}

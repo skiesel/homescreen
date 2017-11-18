@@ -1,0 +1,242 @@
+<html>
+<head>
+	<script src="https://unpkg.com/vue"></script>
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.2/moment.min.js"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+	<style>
+	.container-full {
+	  max-width: 100%;
+	}
+	.card-title {
+		font-size: 12pt;
+	}
+	.card-text {
+		font-size: 10pt;
+	}
+	.card-text.news {
+		font-size: 8pt;
+	}
+	#Forecast .card-body {
+		padding : 0px;
+	}
+	</style>
+</head>
+<body>
+	<div class="container container-full">
+		<div class="row">
+			<div class="col-3">
+				<div class="row" id="Calendar">
+					<ul class="list-group w-100">
+						<li class="list-group-item list-group-item-primary">Calendar</li>
+						<li v-for="event in events" class="list-group-item flex-column align-items-start">
+							<div class="d-flex w-100 justify-content-between">
+								<h5 class="mb-1">{{ event.title }}</h5>
+								<small>{{ event.when }}</small>
+							</div>
+							<p class="mb-1">{{ event.description }}</p>
+							<small>{{ event.location }}</small>
+						</li>
+					</ul>
+				</div>
+			</div>
+			<div class=col-6>
+				<div class="row">
+					<ul class="list-group w-100">
+						<li class="list-group-item list-group-item-primary">Weather</li>
+					</ul>
+				</div>
+				<div class="row" id="Forecast">
+					<div class="card-group">
+						<div v-for="forecast in forecasts" class="card text-center">
+							<img class="card-img-top" v-bind:src="forecast.dayImage">
+							<div class="card-body">
+								<h4 class="card-title">{{ forecast.title }}</h4>
+								<p class="card-text">{{ forecast.dayDescription }}</p>
+							</div>
+						</div>
+					</div>
+					<div class="card-group">
+						<div v-for="forecast in forecasts" class="card text-center">
+							<img class="card-img-top" v-bind:src="forecast.nightImage">
+							<div class="card-body">
+								<h4 class="card-title">{{ forecast.title }} Night</h4>
+								<p class="card-text">{{ forecast.nightDescription }}</p>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="row" id="Messages">
+					<ul class="list-group w-100">
+						<li class="list-group-item list-group-item-primary">Messages</li>
+						<li v-for="message in messages" class="list-group-item">{{ message.from }} : {{ message.message }}</li>
+					</ul>
+				</div>
+			</div>
+			<div class=col-3>
+				<div class="row" id="Mail">
+					<ul class="list-group w-100">
+						<li class="list-group-item list-group-item-primary">Mail</li>
+						<li class="list-group-item" v-bind:class="{'text-white bg-danger' : hasError, 'text-white bg-primary' : hasMail }">
+							<span v-if="hasMail">&#9993;</span> {{ status }}
+						</li>
+					</ul>
+				</div>
+				<div class="row" id="News">
+					<ul class="list-group w-100">
+						<li class="list-group-item list-group-item-primary">Headlines</li>
+	  				<li v-for="headline in headlines" class="list-group-item">
+							{{ headline }}
+						</li>
+					</ul>
+			</div>
+		</div>
+	</div>
+
+	<script>
+	var MINUTE = 60 * 1000;
+
+	/* Grab calendar events from google calendar */
+	var Calendar = new Vue({
+		el: '#Calendar',
+		data : {
+			events : [],
+		}
+	});
+
+	function loadCalendar() {
+		var nowTimestamp = moment().format();
+		$.get("https://www.googleapis.com/calendar/v3/calendars/[[.GCalID]]/events?timeMin="+nowTimestamp+"&key=[[.GAPIKey]]",
+			function(calendarJSON) {
+				Calendar.events = [];
+				$.each(calendarJSON.items, function(index, item) {
+					Calendar.events.push({
+						title : item.summary,
+						when : moment(item.start.dateTime).format("ddd, h:mmA"),
+						description : item.description,
+						location : item.location,
+					});
+				});
+		});
+	}
+
+	loadCalendar();
+	setInterval(loadCalendar, MINUTE);
+
+	/* Grab the news from the local server */
+	var News = new Vue({
+		el: '#News',
+		data : {
+			headlines : [],
+		}
+	});
+
+	function loadNews() {
+		$.get("http://localhost:8080/headlines",
+			function(newsJSON) {
+				newsJSON.shift();
+				News.headlines = newsJSON;
+		});
+	}
+
+	loadNews();
+	setInterval(loadNews, 5*MINUTE);
+
+	/* Grab forecast from weather underground */
+	var Forecast = new Vue({
+		el: '#Forecast',
+		data : {
+			forecasts : [],
+		}
+	});
+
+	function loadForecast() {
+		$.get("http://api.wunderground.com/api/[[.WUKey]]/forecast/q/[[.WULocation]]",
+		function(forecastJSON) {
+			var last = null;
+			Forecast.forecasts = [];
+			$.each(forecastJSON.forecast.txt_forecast.forecastday, function(index, forecastDay) {
+				if(!forecastDay.title.includes("Night")) {
+					if(last != null) {
+						Forecast.forecasts.push(last);
+					}
+					last = {
+						title : forecastDay.title,
+						dayDescription : forecastDay.fcttext,
+						dayImage : forecastDay.icon_url,
+					};
+				} else {
+					if(last == null) {
+						last = {
+							title : forecastDay.title.replace(" Night", ""),
+							nightDescription : forecastDay.fcttext,
+							nightImage : forecastDay.icon_url,
+						}
+					} else {
+						last.nightDescription = forecastDay.fcttext;
+						last.nightImage = forecastDay.icon_url;
+					}
+				}
+			});
+			Forecast.forecasts.push(last);
+		});
+	}
+
+	loadForecast();
+	setInterval(loadForecast, 10*MINUTE);
+
+	/* Grab mail status from the local server */
+	var Mail = new Vue({
+		el: '#Mail',
+		data : {
+			status : "loading",
+			hasError : false,
+			hasMail : false,
+		}
+	});
+
+	function loadMail() {
+		$.get("http://localhost:8080/mail",
+			function(mailJSON) {
+			if(mailJSON.gotMail) {
+				Mail.status = "You've got mail!";
+				Mail.hasMail = true;
+				Mail.hasError = false;
+			} else {
+				Mail.status = "No mail currently detected.";
+				Mail.hasMail = false;
+				Mail.hasError = false;
+			}
+		}).fail(function() {
+	    Mail.status = "Failed to retrieve mail status...";
+			Mail.hasMail = false;
+			Mail.hasError = true;
+	  });
+	}
+
+	loadMail();
+	setInterval(loadMail, MINUTE);
+
+	/* Grab messages from the local server */
+	var Messages = new Vue({
+		el: '#Messages',
+		data : {
+			messages : [],
+		}
+	});
+
+	function loadMessages() {
+		$.get("http://localhost:8080/messages",
+			function(messagesJSON) {
+				Messages.messages = messagesJSON;
+		}).fail(function() {
+	    Messages.messages = ["Failed to retrieve messages..."];
+	  });
+	}
+
+	loadMessages();
+	setInterval(loadMessages, MINUTE);
+
+</script>
+</body>
+</html>
