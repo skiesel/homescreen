@@ -106,7 +106,7 @@
 	});
 
 	function loadCalendar() {
-		Calendar.currentDateTime = moment().format("MMM Do, YYYY h:mA");
+		Calendar.currentDateTime = moment().format("MMM Do, YYYY h:mmA");
 		var nowTimestamp = moment().format();
 		var inAMonth = moment().add(1, 'months').format();
 		$.get("https://www.googleapis.com/calendar/v3/calendars/[[.GCalID]]/events?timeMin="+nowTimestamp+"&maxTime="+inAMonth+"&key=[[.GAPIKey]]",
