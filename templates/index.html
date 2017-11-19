@@ -41,12 +41,10 @@
 				</div>
 			</div>
 			<div class=col-6>
-				<div class="row">
-					<ul class="list-group w-100">
-						<li class="list-group-item list-group-item-primary">Weather</li>
-					</ul>
-				</div>
 				<div class="row" id="Forecast">
+					<ul class="list-group w-100">
+						<li class="list-group-item list-group-item-primary">Weather [{{headerString}}]</li>
+					</ul>
 					<div class="card-group">
 						<div v-for="forecast in forecasts" class="card text-center">
 							<img class="card-img-top" v-bind:src="forecast.dayImage">
@@ -165,11 +163,20 @@
 	var Forecast = new Vue({
 		el: '#Forecast',
 		data : {
+			headerString : "test",
 			forecasts : [],
 		}
 	});
 
 	function loadForecast() {
+		$.get("http://api.wunderground.com/api/[[.WUKey]]/conditions/q/[[.WULocation]]", function(conditionsJSON) {
+			console.log(conditionsJSON);
+			var temp = conditionsJSON.current_observation.temp_f;
+			var feelslike = conditionsJSON.current_observation.feelslike_f
+			var wind = conditionsJSON.current_observation.wind_mph;
+			Forecast.headerString = temp + "°F (feels like "+feelslike+"°F with "+wind+"mph wind)";
+		});
+
 		$.get("http://api.wunderground.com/api/[[.WUKey]]/forecast/q/[[.WULocation]]",
 		function(forecastJSON) {
 			var last = null;
