@@ -28,7 +28,7 @@
 			<div class="col-3">
 				<div class="row" id="Calendar">
 					<ul class="list-group w-100">
-						<li class="list-group-item list-group-item-primary">Calendar</li>
+						<li class="list-group-item list-group-item-primary">Calendar [{{currentDateTime}}]</li>
 						<li v-for="event in events" class="list-group-item flex-column align-items-start">
 							<div class="d-flex w-100 justify-content-between">
 								<h5 class="mb-1">{{ event.title }}</h5>
@@ -100,19 +100,33 @@
 	var Calendar = new Vue({
 		el: '#Calendar',
 		data : {
+			currentDateTime : "",
 			events : [],
 		}
 	});
 
 	function loadCalendar() {
+		Calendar.currentDateTime = moment().format("MMM Do, YYYY h:mA");
 		var nowTimestamp = moment().format();
-		$.get("https://www.googleapis.com/calendar/v3/calendars/[[.GCalID]]/events?timeMin="+nowTimestamp+"&key=[[.GAPIKey]]",
+		var inAMonth = moment().add(1, 'months').format();
+		$.get("https://www.googleapis.com/calendar/v3/calendars/[[.GCalID]]/events?timeMin="+nowTimestamp+"&maxTime="+inAMonth+"&key=[[.GAPIKey]]",
 			function(calendarJSON) {
 				Calendar.events = [];
+				var now = moment();
 				$.each(calendarJSON.items, function(index, item) {
+					var when;
+					if(item.start.dateTime) {
+						when = moment(item.start.dateTime).format("ddd, h:mmA");
+					} else if(item.start.date) {
+						when = moment(item.start.date).format("MMM Do");
+					} else {
+						when = "...";
+						console.log("failed to find expected date field from calendar event.");
+					}
+
 					Calendar.events.push({
 						title : item.summary,
-						when : moment(item.start.dateTime).format("ddd, h:mmA"),
+						when : when,
 						description : item.description,
 						location : item.location,
 					});
@@ -139,8 +153,13 @@
 		});
 	}
 
+	function scrollNews() {
+		News.headlines.push(News.headlines.shift());
+	}
+
 	loadNews();
 	setInterval(loadNews, 5*MINUTE);
+	setInterval(scrollNews, MINUTE/12);
 
 	/* Grab forecast from weather underground */
 	var Forecast = new Vue({
