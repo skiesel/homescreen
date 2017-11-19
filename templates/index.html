@@ -146,7 +146,7 @@
 	});
 
 	function loadNews() {
-		$.get("http://localhost:8080/headlines",
+		$.get("/headlines",
 			function(newsJSON) {
 				newsJSON.shift();
 				News.headlines = newsJSON;
@@ -215,7 +215,7 @@
 	});
 
 	function loadMail() {
-		$.get("http://localhost:8080/mail",
+		$.get("/mail",
 			function(mailJSON) {
 			if(mailJSON.gotMail) {
 				Mail.status = "You've got mail!";
@@ -245,7 +245,7 @@
 	});
 
 	function loadMessages() {
-		$.get("http://localhost:8080/messages",
+		$.get("/messages",
 			function(messagesJSON) {
 				Messages.messages = messagesJSON;
 		}).fail(function() {
